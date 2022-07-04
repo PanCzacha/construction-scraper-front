@@ -6,8 +6,8 @@ export const AddForm = () => {
     const {setContextId} = useContext(IdContext);
     const [loading, setLoading] = useState(false);
     const [form, setForm] = useState({
-        productGroup: "",
         link: "",
+        productGroup: "",
     })
 
     const addMaterial = async (e: SyntheticEvent) => {
@@ -15,13 +15,13 @@ export const AddForm = () => {
         setLoading(true);
         try {
             const res = await apiCall("/add", "POST", {
-                productGroup: form.productGroup,
                 link: form.link,
+                productGroup: form.productGroup,
             });
             const id = res.json();
             setForm({
-                productGroup: "",
                 link: "",
+                productGroup: "",
             })
             setContextId(id);
         } finally {
@@ -30,12 +30,11 @@ export const AddForm = () => {
 
     }
 
-    if(loading) {
+    if (loading) {
         return (
             <h1>Adding... Please wait.</h1>
         )
     }
-
 
     const updateForm = (key: string, value: any) => {
         setForm(form => ({
@@ -45,32 +44,27 @@ export const AddForm = () => {
     }
 
     return (
-        <form action="" className="add-form" onSubmit={addMaterial}>
+        <form className="add-form" onSubmit={addMaterial}>
             <h1>Add construction material to database</h1>
-            <p>
             <label>
                 Product group:
-                <br/>
                 <input type="text"
-                name="productGroup"
-                required
-                maxLength={49}
-                value={form.productGroup}
-                onChange={e => updateForm("productGroup", e.target.value)}/>
+                       name="productGroup"
+                       required
+                       maxLength={49}
+                       value={form.productGroup}
+                       onChange={e => updateForm("productGroup", e.target.value)}/>
             </label>
-            </p>
-            <p>
-                <label>
-                    URL to shop:
-                    <br/>
-                    <input type="text"
-                           name="link"
-                           required
-                           maxLength={299}
-                           value={form.link}
-                           onChange={e => updateForm("link", e.target.value)}/>
-                </label>
-            </p>
+
+            <label>
+                URL to shop:
+                <input type="text"
+                       name="link"
+                       required
+                       maxLength={299}
+                       value={form.link}
+                       onChange={e => updateForm("link", e.target.value)}/>
+            </label>
             <button>Add</button>
         </form>
     )
