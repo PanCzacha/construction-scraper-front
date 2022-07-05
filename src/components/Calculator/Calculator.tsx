@@ -14,9 +14,9 @@ interface RowInfo {
 }
 
 interface Costs {
-    material: number | "";
-    fuel: number | "";
-    total: number | "";
+    material: string | "";
+    fuel: string | "";
+    total: string | "";
 }
 
 export const Calculator = () => {
@@ -65,9 +65,9 @@ export const Calculator = () => {
         const materialCost = Number(materialQuantity) * Number(materialPrice);
         const totalCost = fuelConsumptionCost + materialCost;
         setCosts({
-            material: materialCost,
-            fuel: fuelConsumptionCost,
-            total: totalCost,
+            material: materialCost.toFixed(2),
+            fuel: fuelConsumptionCost.toFixed(2),
+            total: totalCost.toFixed(2),
         })
 
     }
@@ -105,9 +105,9 @@ export const Calculator = () => {
                 <button>Calculate</button>
             </form>
 
-            <p>Price of materials: {`${costs.material}`} </p>
-            <p>Cost of fuel: {`${costs.fuel}`}</p>
-            <p>Total with fuel costs: {`${costs.total}`}</p>
+            <p>Cost of materials: {`${costs.material}`} zł </p>
+            <p>Cost of fuel: {`${costs.fuel}`} zł</p>
+            <p>Total: <strong>{`${costs.total}`}</strong> zł</p>
         </>
     )
 }

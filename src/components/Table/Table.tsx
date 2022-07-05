@@ -4,14 +4,15 @@ import {apiCall} from "../../utils/apiCall";
 import {Link} from "react-router-dom";
 import {IdContext} from "../../contexts/IdContext";
 import Box from "@mui/material/Box";
-import {DataGrid, GridColDef, GridRenderCellParams, GridRowId} from "@mui/x-data-grid";
+import {DataGrid, GridColDef, GridRenderCellParams, GridRowId, GridSelectionModel} from "@mui/x-data-grid";
 import "./Table.css";
 
 
 export function Table() {
-    const [updateId, setUpdateId] = useState<string[]>([]);
     const contextId = useContext(IdContext);
     const [products, setProducts] = useState<MaterialRecordEntity[]>([]);
+    const [updateId, setUpdateId] = useState<GridRowId[]>([]);
+    const [selectedIds, setSelectedIds] = useState<GridSelectionModel>([]);
 
     const fetchMaterialRecords = async () => {
         const response = await apiCall("/");
@@ -19,20 +20,40 @@ export function Table() {
         setProducts(data);
     };
 
-    const deleteMaterial = async (e: SyntheticEvent, id: GridRowId) => {
-        e.preventDefault();
+    const deleteSingleMaterial = async (id: GridRowId) => {
         await apiCall(`/delete/${id}`, "DELETE");
-        await fetchMaterialRecords();
     }
 
-    const updatePrice = async (e: SyntheticEvent, id: string) => {
+    const deleteSelected = async (e: SyntheticEvent) => {
         e.preventDefault();
+        await Promise.allSettled(
+            selectedIds.map(async (id) => {
+                await deleteSingleMaterial(id);
+                setProducts(products.filter(product => product.id !== id));
+                setSelectedIds([]);
+            })
+        )
+        await fetchMaterialRecords();
+
+    }
+
+    const updateSinglePrice = async (id: GridRowId) => {
         setUpdateId(prevArr => [...prevArr, id]);
-        const res = await apiCall(`/update/${id}`, "PATCH");
-        if (res.ok) {
-            setUpdateId(updateId => updateId.filter(arId => arId !== id));
-            await fetchMaterialRecords();
-        }
+        return await apiCall(`/update/${id}`, "PATCH")
+    }
+
+    const updateSelectedPrices = async (e: SyntheticEvent) => {
+        e.preventDefault();
+        await Promise.allSettled(
+            selectedIds.map(async (id) => {
+                const res = await updateSinglePrice(id);
+                if (res.ok) {
+                    setUpdateId(updateId => updateId.filter(arId => arId !== id));
+                    setSelectedIds([]);
+                }
+            })
+        )
+        await fetchMaterialRecords();
     }
 
     const firstLetterUpperCase = (s: string) => {
@@ -42,25 +63,19 @@ export function Table() {
     }
 
 
-    useEffect(() => {
-        fetchMaterialRecords()
-            .catch(console.error);
-    }, [contextId]);
-
-
     const columns: GridColDef[] = [
         {field: "productGroup", headerName: "Product group", width: 200,},
-        {field: "name", headerName: "Name", width: 100,},
+        {field: "name", headerName: "Name", flex: 2,},
         {
-            field: "shopName", headerName: "Shop name", width: 100, renderCell: (params) => {
+            field: "shopName", headerName: "Shop name", flex: 1, renderCell: (params) => {
                 let name: string;
                 name = params.row.shopName === "leroymerlin" ? "Leroy Merlin" : params.row.shopName;
                 return firstLetterUpperCase(name)
             }
         },
-        {field: "previousPrice", headerName: "Previous price", width: 100,},
-        {field: "currentPrice", headerName: "Current price", width: 100,},
-        {field: "unit", headerName: "Unit", width: 100,},
+        {field: "previousPrice", headerName: "Previous price", flex: 0.5,},
+        {field: "currentPrice", headerName: "Current price", flex: 0.5,},
+        {field: "unit", headerName: "Unit", flex: 0.3,},
         {
             field: "link", headerName: "Shop URL", width: 100, renderCell: (params) => {
 
@@ -70,10 +85,8 @@ export function Table() {
             }
         },
         {
-            field: "actions", headerName: "Actions", width: 250, renderCell: (params: GridRenderCellParams): ReactNode => {
+            field: "action", headerName: "Calculate cost", flex: 1, renderCell: (params: GridRenderCellParams): ReactNode => {
                 return <>
-                    <button onClick={e => deleteMaterial(e, params.row.id)}>Delete</button>
-                    <button onClick={e => updatePrice(e, params.row.id)}>{updateId.includes(params.row.id) ? "Updating..." : "Update price"}</button>
                     <Link
                         to="/calculator"
                         state={
@@ -90,6 +103,7 @@ export function Table() {
         },
     ];
 
+
     const rows: MaterialRecordEntity[] = products.map(product => {
         return {
             id: product.id,
@@ -103,17 +117,32 @@ export function Table() {
         }
     });
 
+    useEffect(() => {
+        fetchMaterialRecords()
+            .catch(console.error);
+    }, [contextId]);
 
     return (
         <>
-            <Box sx={{height: 800, width: "100%"}}>
-                <DataGrid
-                    rows={rows}
-                    columns={columns}
-                    pageSize={20}
-                    rowsPerPageOptions={[20]}
-                />
-            </Box>
+            <button onClick={e => deleteSelected(e)}>Delete selected</button>
+            <button onClick={e => updateSelectedPrices(e)}>{updateId.length > 0 ? "Updating..." : "Update price of selected"}</button>
+            <div style={{width: "100%"}}>
+                <div style={{display: "flex", height: "800px", width: "100%"}}>
+                    <Box sx={{width: "100%", flexGrow: 1}}>
+                        <DataGrid
+                            autoHeight
+                            rows={rows}
+                            columns={columns}
+                            pageSize={20}
+                            rowsPerPageOptions={[20]}
+                            checkboxSelection
+                            disableSelectionOnClick
+                            onSelectionModelChange={(id) => setSelectedIds(id)}
+                            selectionModel={selectedIds}
+                        />
+                    </Box>
+                </div>
+            </div>
         </>
 
     )
