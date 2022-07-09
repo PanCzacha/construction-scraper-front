@@ -1,13 +1,10 @@
-import React, {SyntheticEvent, useState} from "react";
+import React, {SyntheticEvent, useEffect, useState} from "react";
 import {config} from "../../config/config";
-import {useLocation} from "react-router-dom";
-
-interface Coordinates {
-    coordinate1: string;
-    coordinate2: string;
-}
+import {apiCall} from "../../utils/apiCall";
+import {firstLetterUpperCase} from "../../utils/firstLetterUpperCase";
 
 interface RowInfo {
+    shopName: string;
     materialPrice: string;
     name: string;
     unit: string;
@@ -19,49 +16,58 @@ interface Costs {
     total: string | "";
 }
 
-export const Calculator = () => {
-    const location = useLocation();
-    const {materialPrice, name, unit} = location.state as RowInfo;
+interface FormData {
+    distance: string;
+    gasPrice: string;
+    fuelConsumption: string;
+    materialQuantity: string;
+    oneWay: boolean;
+}
+
+interface ShopDistanceMatrix {
+    address: string;
+    distance: string;
+}
+
+export const Calculator = (props: RowInfo) => {
+    const {shopName, materialPrice, name, unit} = props;
+
     const [costs, setCosts] = useState<Costs>({
         material: "",
         fuel: "",
         total: "",
     })
-    const [form, setForm] = useState({
-        address1: "",
-        address2: "",
+
+    const [form, setForm] = useState<FormData>({
+        distance: "",
         gasPrice: "",
         fuelConsumption: "",
         materialQuantity: "",
-        oneWay: "",
+        oneWay: false,
     });
+    const [startAddress, setStartAddress] = useState("");
+    const [shopDistances, setShopDistances] = useState<ShopDistanceMatrix[] | null>(null);
 
-
-    const getAddressData = async (address: string): Promise<any> => {
-        const res = await fetch(`https://api.openrouteservice.org/geocode/search?api_key=${config.openRouteServiceApiKey}&text=${address}`);
-        return await res.json()
-    }
-
-    const getDistanceData = async (coordinates: Coordinates): Promise<any> => {
-        const {coordinate1, coordinate2} = coordinates;
-        const res = await fetch(`https://api.openrouteservice.org/v2/directions/driving-car?api_key=${config.openRouteServiceApiKey}&start=${coordinate1}&end=${coordinate2}`);
-        return res.json();
-    }
-
-    const calculate = async (e: SyntheticEvent): Promise<any> => {
-        const {address1, address2, gasPrice, fuelConsumption, materialQuantity, oneWay} = form;
+    const getShopsDistances = async (e: SyntheticEvent) => {
         e.preventDefault();
-        const add1 = await getAddressData(address1);
-        const add2 = await getAddressData(address2);
-        const coordinates =  {
-            coordinate1: add1.features[0].geometry.coordinates.join(","),
-            coordinate2: add2.features[0].geometry.coordinates.join(","),
-        };
-        const distanceData = await getDistanceData(coordinates);
-        const distance = distanceData.features[0].properties.summary.distance / 1000;
+        const startCoordinates = await getStartPointCoordinates();
+        const res = await apiCall(`/shops/distances/${shopName}/${startCoordinates}`)
+        const data = await res.json();
+        setShopDistances(data);
+    }
+
+    const getStartPointCoordinates = async () => {
+        const res = await fetch(`https://api.openrouteservice.org/geocode/search?api_key=${config.openRouteServiceApiKey}&text=${startAddress}`);
+        const data = await res.json();
+        return data.features[0].geometry.coordinates.join(",");
+    }
+
+    const calculate = async (e: SyntheticEvent): Promise<void> => {
+        e.preventDefault();
+        const {distance, gasPrice, fuelConsumption, materialQuantity, oneWay} = form;
         const fuelConsumptionCost = oneWay
-            ? (Number(fuelConsumption) / (100 / distance)) * Number(gasPrice)
-            : ((Number(fuelConsumption) / (100 / distance)) * Number(gasPrice)) * 2;
+            ? (Number(fuelConsumption) / (100 / Number(distance))) * Number(gasPrice)
+            : ((Number(fuelConsumption) / (100 / Number(distance))) * Number(gasPrice)) * 2;
         const materialCost = Number(materialQuantity) * Number(materialPrice);
         const totalCost = fuelConsumptionCost + materialCost;
         setCosts({
@@ -69,45 +75,86 @@ export const Calculator = () => {
             fuel: fuelConsumptionCost.toFixed(2),
             total: totalCost.toFixed(2),
         })
-
     }
 
-    const updateForm = (key: string, value: any) => {
+    const updateCalcForm = (key: string, value: any) => {
         setForm(form => ({
             ...form,
             [key]: value,
         }))
     }
 
+    const updateStartAddressForm = (value: string) => {
+        if (value === "") {
+            setShopDistances(null);
+        }
+        setStartAddress(value);
+    }
+
+    useEffect(() => {
+        if(shopDistances && shopDistances.length > 0) {
+            const sorted = shopDistances.sort((a,b) => (a.distance > b.distance) ? 1 : ((b.distance > a.distance) ? -1 : 0))
+            updateCalcForm("distance", String(sorted[0].distance));
+        }
+    }, [shopDistances])
+
     return (
         <>
             <h1>{`Calculate total cost of buying ${name}`}</h1>
             <h3>{`Material price ${materialPrice}/${unit}`}</h3>
+            <form onSubmit={getShopsDistances}>
+                <label>Please enter your starting address and click "Enter"
+                    <input type="text" name="startAddress" value={startAddress} onChange={e => updateStartAddressForm(e.target.value)}/>
+                </label>
+                <button>Enter</button>
+            </form>
+
             <form onSubmit={calculate}>
-                <label>Check to calculate for one way:
-                    <input type="checkbox" name="oneWay" onChange={e => updateForm("oneWay", e.target.checked)}/>
-                </label>
-                <label>Address 1:
-                    <input type="text" name="address1" value={form.address1} onChange={e => updateForm("address1", e.target.value)}/>
-                </label>
-                <label>Address 2:
-                    <input type="text" name="address2" value={form.address2} onChange={e => updateForm("address2", e.target.value)}/>
-                </label>
-                <label>Price per liter of fuel:
-                    <input type="text" name="gasPrice" value={form.gasPrice} onChange={e => updateForm("gasPrice", e.target.value)}/>
-                </label>
-                <label>Fuel consumption l/100km:
-                    <input type="text" name="fuelConsumption" value={form.fuelConsumption} onChange={e => updateForm("fuelConsumption", e.target.value)}/>
-                </label>
-                <label>Material quantity:
-                    <input type="text" name="materialQuantity" value={form.materialQuantity} onChange={e => updateForm("materialQuantity", e.target.value)}/>
-                </label>
+                <p>
+                    <label>Check to calculate for one way:
+                        <input type="checkbox" name="oneWay" onChange={e => updateCalcForm("oneWay", e.target.checked)}/>
+                    </label>
+                </p>
+                <p>
+
+                    {shopDistances === null
+                        ? null
+                        : <label>
+                            Select <strong>{`${firstLetterUpperCase(shopName)}`}</strong> shop
+                            <select name="distance" onChange={(e) => updateCalcForm("distance", e.target.value)}>
+                                {[...shopDistances]
+                                    .sort((a,b) => (a.distance > b.distance) ? 1 : ((b.distance > a.distance) ? -1 : 0))
+                                    .map((shop: ShopDistanceMatrix) => {
+                                        return <option key={shop.distance} value={shop.distance}>{shop.address} {shop.distance}km</option>
+                                    })}
+                            </select>
+                        </label>
+                    }
+                </p>
+                <p>
+                    <label>Price per liter of fuel:
+                        <input type="text" name="gasPrice" value={form.gasPrice} onChange={e => updateCalcForm("gasPrice", e.target.value)}/>
+                    </label>
+                </p>
+                <p>
+                    <label>Fuel consumption l/100km:
+                        <input type="text" name="fuelConsumption" value={form.fuelConsumption}
+                               onChange={e => updateCalcForm("fuelConsumption", e.target.value)}/>
+                    </label>
+                </p>
+                <p>
+                    <label>Material quantity:
+                        <input type="text" name="materialQuantity" value={form.materialQuantity}
+                               onChange={e => updateCalcForm("materialQuantity", e.target.value)}/>
+                    </label>
+                </p>
                 <button>Calculate</button>
             </form>
 
             <p>Cost of materials: {`${costs.material}`} zł </p>
             <p>Cost of fuel: {`${costs.fuel}`} zł</p>
             <p>Total: <strong>{`${costs.total}`}</strong> zł</p>
+
         </>
     )
 }

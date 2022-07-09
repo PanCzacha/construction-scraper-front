@@ -1,11 +1,12 @@
 import React, {ReactNode, SyntheticEvent, useContext, useEffect, useState} from 'react';
 import {MaterialRecordEntity} from "types";
 import {apiCall} from "../../utils/apiCall";
-import {Link} from "react-router-dom";
 import {IdContext} from "../../contexts/IdContext";
 import Box from "@mui/material/Box";
 import {DataGrid, GridColDef, GridRenderCellParams, GridRowId, GridSelectionModel} from "@mui/x-data-grid";
 import "./Table.css";
+import {Calculator} from "../Calculator/Calculator";
+import {firstLetterUpperCase} from "../../utils/firstLetterUpperCase";
 
 
 export function Table() {
@@ -13,6 +14,28 @@ export function Table() {
     const [products, setProducts] = useState<MaterialRecordEntity[]>([]);
     const [updateId, setUpdateId] = useState<GridRowId[]>([]);
     const [selectedIds, setSelectedIds] = useState<GridSelectionModel>([]);
+    const [selectedRow, setSelectedRow] = useState({
+        shopName: "",
+        materialPrice: "",
+        name: "",
+        unit: "",
+    })
+    const [calculate, setCalculate] = useState(false);
+
+    const handleOpenCalculator = (bool: boolean, rowData?: any) => {
+        if (!bool) {
+            setSelectedRow({
+                shopName: "",
+                materialPrice: "",
+                name: "",
+                unit: "",
+            })
+        }
+        setCalculate(bool);
+        setSelectedRow({
+            ...rowData
+        })
+    }
 
     const fetchMaterialRecords = async () => {
         const response = await apiCall("/");
@@ -26,7 +49,7 @@ export function Table() {
 
     const deleteSelected = async (e: SyntheticEvent) => {
         e.preventDefault();
-        await Promise.allSettled(
+        await Promise.all(
             selectedIds.map(async (id) => {
                 await deleteSingleMaterial(id);
                 setProducts(products.filter(product => product.id !== id));
@@ -34,32 +57,29 @@ export function Table() {
             })
         )
         await fetchMaterialRecords();
-
     }
 
     const updateSinglePrice = async (id: GridRowId) => {
         setUpdateId(prevArr => [...prevArr, id]);
-        return await apiCall(`/update/${id}`, "PATCH")
+        return await apiCall(`/update/${id}`, "PATCH");
     }
 
     const updateSelectedPrices = async (e: SyntheticEvent) => {
         e.preventDefault();
         await Promise.allSettled(
             selectedIds.map(async (id) => {
-                const res = await updateSinglePrice(id);
-                if (res.ok) {
-                    setUpdateId(updateId => updateId.filter(arId => arId !== id));
-                    setSelectedIds([]);
+                try {
+                    const res = await updateSinglePrice(id);
+                    if (res.ok) {
+                        setUpdateId(updateId => updateId.filter(arrId => arrId !== id));
+                        setSelectedIds(selectedIds => selectedIds.filter(arrId => arrId !== id));
+                    }
+                } catch (err) {
+                    console.error(`Cannot update price of product with id: ${id}`, err);
                 }
             })
         )
         await fetchMaterialRecords();
-    }
-
-    const firstLetterUpperCase = (s: string) => {
-        return s.split(" ")
-            .map((substring: string) => substring[0].toUpperCase() + substring.slice(1))
-            .join(" ")
     }
 
 
@@ -68,9 +88,7 @@ export function Table() {
         {field: "name", headerName: "Name", flex: 2,},
         {
             field: "shopName", headerName: "Shop name", flex: 1, renderCell: (params) => {
-                let name: string;
-                name = params.row.shopName === "leroymerlin" ? "Leroy Merlin" : params.row.shopName;
-                return firstLetterUpperCase(name)
+                return firstLetterUpperCase(params.row.shopName)
             }
         },
         {field: "previousPrice", headerName: "Previous price", flex: 0.5,},
@@ -86,19 +104,13 @@ export function Table() {
         },
         {
             field: "action", headerName: "Calculate cost", flex: 1, renderCell: (params: GridRenderCellParams): ReactNode => {
-                return <>
-                    <Link
-                        to="/calculator"
-                        state={
-                            {
-                                materialPrice: params.row.currentPrice,
-                                name: params.row.name,
-                                unit: params.row.unit,
-                            }
-                        }>
-                        <button>Calculator</button>
-                    </Link>
-                </>
+                const selectedRowData = {
+                    shopName: params.row.shopName,
+                    materialPrice: params.row.currentPrice,
+                    name: params.row.name,
+                    unit: params.row.unit,
+                }
+                return <button onClick={() => handleOpenCalculator(true, selectedRowData)}>Calculator</button>
             }
         },
     ];
@@ -124,25 +136,35 @@ export function Table() {
 
     return (
         <>
-            <button onClick={e => deleteSelected(e)}>Delete selected</button>
-            <button onClick={e => updateSelectedPrices(e)}>{updateId.length > 0 ? "Updating..." : "Update price of selected"}</button>
-            <div style={{width: "100%"}}>
-                <div style={{display: "flex", height: "800px", width: "100%"}}>
-                    <Box sx={{width: "100%", flexGrow: 1}}>
-                        <DataGrid
-                            autoHeight
-                            rows={rows}
-                            columns={columns}
-                            pageSize={20}
-                            rowsPerPageOptions={[20]}
-                            checkboxSelection
-                            disableSelectionOnClick
-                            onSelectionModelChange={(id) => setSelectedIds(id)}
-                            selectionModel={selectedIds}
-                        />
-                    </Box>
+            {calculate
+                ?
+                <div>
+                    <Calculator name={selectedRow.name} shopName={selectedRow.shopName} materialPrice={selectedRow.materialPrice}
+                                unit={selectedRow.unit}/>
+                    <button onClick={() => handleOpenCalculator(false)}>Close</button>
                 </div>
-            </div>
+                :
+                <div>
+                    <button onClick={e => deleteSelected(e)}>Delete selected</button>
+                    <button onClick={e => updateSelectedPrices(e)}>{updateId.length > 0 ? "Updating..." : "Update price of selected"}</button>
+                    <div style={{width: "100%"}}>
+                        <div style={{display: "flex", height: "800px", width: "100%"}}>
+                            <Box sx={{width: "100%", flexGrow: 1}}>
+                                <DataGrid
+                                    autoHeight
+                                    rows={rows}
+                                    columns={columns}
+                                    pageSize={20}
+                                    rowsPerPageOptions={[20]}
+                                    checkboxSelection
+                                    disableSelectionOnClick
+                                    onSelectionModelChange={(id) => setSelectedIds(id)}
+                                    selectionModel={selectedIds}
+                                />
+                            </Box>
+                        </div>
+                    </div>
+                </div>}
         </>
 
     )

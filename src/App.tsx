@@ -1,9 +1,7 @@
 import React, {useState} from 'react';
 import {Table} from './components/Table/Table';
 import {IdContext} from "./contexts/IdContext";
-import {Route, Routes} from "react-router-dom";
 import {Header} from "./components/Header/Header";
-import {Calculator} from "./components/Calculator/Calculator";
 import './App.css';
 
 function App() {
@@ -13,10 +11,7 @@ function App() {
     return (
         <IdContext.Provider value={{contextId, setContextId}}>
             <Header/>
-            <Routes>
-                <Route path="/" element={<Table/>}/>
-                <Route path="/calculator" element={<Calculator/>}/>
-            </Routes>
+            <Table/>
         </IdContext.Provider>
     );
 }
