@@ -4,38 +4,35 @@ import {apiCall} from "../../utils/apiCall";
 import {IdContext} from "../../contexts/IdContext";
 import Box from "@mui/material/Box";
 import {DataGrid, GridColDef, GridRenderCellParams, GridRowId, GridSelectionModel} from "@mui/x-data-grid";
-import "./Table.css";
+import Button from '@mui/material/Button'
 import {Calculator} from "../Calculator/Calculator";
 import {firstLetterUpperCase} from "../../utils/firstLetterUpperCase";
+import DeleteIcon from '@mui/icons-material/Delete';
+import UpdateIcon from '@mui/icons-material/Update';
+import {LoadingButton} from "@mui/lab";
+import SaveIcon from "@mui/icons-material/Save";
 
+interface CalculatorProps {
+    shopName: string;
+    materialPrice: string;
+    name: string;
+    unit: string;
+}
 
 export function Table() {
     const contextId = useContext(IdContext);
     const [products, setProducts] = useState<MaterialRecordEntity[]>([]);
-    const [updateId, setUpdateId] = useState<GridRowId[]>([]);
     const [selectedIds, setSelectedIds] = useState<GridSelectionModel>([]);
-    const [selectedRow, setSelectedRow] = useState({
+    const [selectedRow, setSelectedRow] = useState<CalculatorProps>({
         shopName: "",
         materialPrice: "",
         name: "",
         unit: "",
-    })
-    const [calculate, setCalculate] = useState(false);
-
-    const handleOpenCalculator = (bool: boolean, rowData?: any) => {
-        if (!bool) {
-            setSelectedRow({
-                shopName: "",
-                materialPrice: "",
-                name: "",
-                unit: "",
-            })
-        }
-        setCalculate(bool);
-        setSelectedRow({
-            ...rowData
-        })
-    }
+    });
+    const [open, setOpen] = useState(false);
+    const [updateLoading, setUpdateLoading] = useState(false);
+    const [deleteLoading, setDeleteLoading] = useState(false);
+    const [error, setError] = useState("");
 
     const fetchMaterialRecords = async () => {
         const response = await apiCall("/");
@@ -43,12 +40,31 @@ export function Table() {
         setProducts(data);
     };
 
+    const handleOpenCalculator = (bool: boolean, rowData: any) => {
+        setOpen(true);
+        setSelectedRow({
+            ...rowData
+        })
+    }
+
+    const handleCloseCalculator = () => {
+        setOpen(false);
+        setSelectedRow({
+            shopName: "",
+            materialPrice: "",
+            name: "",
+            unit: "",
+        })
+    }
+
+
     const deleteSingleMaterial = async (id: GridRowId) => {
         await apiCall(`/delete/${id}`, "DELETE");
     }
 
     const deleteSelected = async (e: SyntheticEvent) => {
         e.preventDefault();
+        setDeleteLoading(true);
         await Promise.all(
             selectedIds.map(async (id) => {
                 await deleteSingleMaterial(id);
@@ -57,22 +73,33 @@ export function Table() {
             })
         )
         await fetchMaterialRecords();
+        setDeleteLoading(false);
     }
 
     const updateSinglePrice = async (id: GridRowId) => {
-        setUpdateId(prevArr => [...prevArr, id]);
         return await apiCall(`/update/${id}`, "PATCH");
     }
 
     const updateSelectedPrices = async (e: SyntheticEvent) => {
         e.preventDefault();
+        setUpdateLoading(true);
         await Promise.allSettled(
             selectedIds.map(async (id) => {
                 try {
                     const res = await updateSinglePrice(id);
-                    if (res.ok) {
-                        setUpdateId(updateId => updateId.filter(arrId => arrId !== id));
+                    if(res.status === 404) {
+                        const productName = products.map(product => {
+                            if(product.id === id) {
+                                return product.name
+                            }});
+                        setError(`Cannot update price of ${productName}`);
                         setSelectedIds(selectedIds => selectedIds.filter(arrId => arrId !== id));
+                        setUpdateLoading(false);
+                        return
+                    }
+                    if (res.ok) {
+                        setSelectedIds(selectedIds => selectedIds.filter(arrId => arrId !== id));
+                        setError("");
                     }
                 } catch (err) {
                     console.error(`Cannot update price of product with id: ${id}`, err);
@@ -80,37 +107,38 @@ export function Table() {
             })
         )
         await fetchMaterialRecords();
+        setUpdateLoading(false);
     }
 
 
     const columns: GridColDef[] = [
-        {field: "productGroup", headerName: "Product group", width: 200,},
+        {field: "productGroup", headerName: "Product group", flex: 0.7,},
         {field: "name", headerName: "Name", flex: 2,},
         {
-            field: "shopName", headerName: "Shop name", flex: 1, renderCell: (params) => {
+            field: "shopName", headerName: "Shop name", flex: 0.5, renderCell: (params) => {
                 return firstLetterUpperCase(params.row.shopName)
             }
         },
         {field: "previousPrice", headerName: "Previous price", flex: 0.5,},
         {field: "currentPrice", headerName: "Current price", flex: 0.5,},
-        {field: "unit", headerName: "Unit", flex: 0.3,},
+        {field: "unit", headerName: "Unit", flex: 0.2,},
         {
-            field: "link", headerName: "Shop URL", width: 100, renderCell: (params) => {
+            field: "link", headerName: "Shop URL", flex: 0.5, renderCell: (params): ReactNode => {
 
-                return <a href={params.row.link}>
-                    <button>Go to shop</button>
+                return <a href={params.row.link} target="_blank" rel="noopener noreferrer">
+                    <Button variant="outlined" color="primary">Go to shop</Button>
                 </a>
             }
         },
         {
-            field: "action", headerName: "Calculate cost", flex: 1, renderCell: (params: GridRenderCellParams): ReactNode => {
+            field: "action", headerName: "Calculate cost", flex: 0.5, renderCell: (params: GridRenderCellParams): ReactNode => {
                 const selectedRowData = {
                     shopName: params.row.shopName,
                     materialPrice: params.row.currentPrice,
                     name: params.row.name,
                     unit: params.row.unit,
                 }
-                return <button onClick={() => handleOpenCalculator(true, selectedRowData)}>Calculator</button>
+                return <Button onClick={() => handleOpenCalculator(true, selectedRowData)} variant="outlined" color="primary">Calculator</Button>
             }
         },
     ];
@@ -136,36 +164,47 @@ export function Table() {
 
     return (
         <>
-            {calculate
-                ?
-                <div>
-                    <Calculator name={selectedRow.name} shopName={selectedRow.shopName} materialPrice={selectedRow.materialPrice}
-                                unit={selectedRow.unit}/>
-                    <button onClick={() => handleOpenCalculator(false)}>Close</button>
+            <Calculator open={open} onClose={handleCloseCalculator} selectedRow={selectedRow}/>
+            <div style={{backgroundColor: "#d3d9de"}}>
+                <div style={{display: "flex", justifyContent: "center", padding: "10px 0"}}>
+                    <LoadingButton sx={{marginRight: "10px"}}
+                                   variant="outlined"
+                                   color="error"
+                                   startIcon={<DeleteIcon/>}
+                                   onClick={e => deleteSelected(e)}
+                                   size="medium"
+                                   loading={deleteLoading}
+                                   loadingPosition="start">Delete selected
+                    </LoadingButton>
+                    <LoadingButton sx={{marginRight: "10px"}}
+                                   variant="outlined"
+                                   color="primary"
+                                   onClick={e => updateSelectedPrices(e)}
+                                   size="medium"
+                                   loading={updateLoading}
+                                   loadingPosition="start"
+                                   startIcon={<UpdateIcon/>}>{updateLoading ? "Updating..." : "Update selected"}
+                    </LoadingButton>
+                    {error && <p>{`${error}`}</p>}
                 </div>
-                :
-                <div>
-                    <button onClick={e => deleteSelected(e)}>Delete selected</button>
-                    <button onClick={e => updateSelectedPrices(e)}>{updateId.length > 0 ? "Updating..." : "Update price of selected"}</button>
-                    <div style={{width: "100%"}}>
-                        <div style={{display: "flex", height: "800px", width: "100%"}}>
-                            <Box sx={{width: "100%", flexGrow: 1}}>
-                                <DataGrid
-                                    autoHeight
-                                    rows={rows}
-                                    columns={columns}
-                                    pageSize={20}
-                                    rowsPerPageOptions={[20]}
-                                    checkboxSelection
-                                    disableSelectionOnClick
-                                    onSelectionModelChange={(id) => setSelectedIds(id)}
-                                    selectionModel={selectedIds}
-                                />
-                            </Box>
-                        </div>
+                <div style={{width: "100%"}}>
+                    <div style={{display: "flex", height: "800px", width: "100%"}}>
+                        <Box sx={{width: "100%", flexGrow: 1}}>
+                            <DataGrid
+                                autoHeight
+                                rows={rows}
+                                columns={columns}
+                                pageSize={20}
+                                rowsPerPageOptions={[20]}
+                                checkboxSelection
+                                disableSelectionOnClick
+                                onSelectionModelChange={(id) => setSelectedIds(id)}
+                                selectionModel={selectedIds}
+                            />
+                        </Box>
                     </div>
-                </div>}
+                </div>
+            </div>
         </>
-
     )
 }
