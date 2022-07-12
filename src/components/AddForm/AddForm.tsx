@@ -2,7 +2,7 @@ import React, {SyntheticEvent, useContext, useState} from "react";
 import {apiCall} from "../../utils/apiCall";
 import {IdContext} from "../../contexts/IdContext";
 import SaveIcon from '@mui/icons-material/Save';
-import {FormGroup, Input, InputLabel, TextField} from "@mui/material";
+import {FormGroup, TextField} from "@mui/material";
 import {LoadingButton} from "@mui/lab";
 
 export const AddForm = () => {
@@ -42,7 +42,7 @@ export const AddForm = () => {
 
     return (
         <form onSubmit={addMaterial}>
-            <h1 style={{textAlign: "center", fontSize: "30px"}}>Add construction material to database</h1>
+            <h1 style={{textAlign: "center", fontSize: "30px"}}>Construction Buddy - build with ease</h1>
             <FormGroup row>
                 <TextField
                     sx={{marginLeft: "10px"}}
@@ -75,7 +75,7 @@ export const AddForm = () => {
                 variant="contained"
                 startIcon={<SaveIcon />}
             >
-                Add to Database
+                Add to list
             </LoadingButton>
             </FormGroup>
         </form>

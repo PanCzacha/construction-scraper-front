@@ -6,7 +6,6 @@ import './App.css';
 
 function App() {
     const [contextId, setContextId] = useState('');
-    // const context = useMemo(() => ({contextId, setContextId}), [contextId]);
 
     return (
         <IdContext.Provider value={{contextId, setContextId}}>

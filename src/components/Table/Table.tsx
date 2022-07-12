@@ -9,8 +9,9 @@ import {Calculator} from "../Calculator/Calculator";
 import {firstLetterUpperCase} from "../../utils/firstLetterUpperCase";
 import DeleteIcon from '@mui/icons-material/Delete';
 import UpdateIcon from '@mui/icons-material/Update';
+import ErrorIcon from '@mui/icons-material/Error';
 import {LoadingButton} from "@mui/lab";
-import SaveIcon from "@mui/icons-material/Save";
+import {FormHelperText} from "@mui/material";
 
 interface CalculatorProps {
     shopName: string;
@@ -29,7 +30,7 @@ export function Table() {
         name: "",
         unit: "",
     });
-    const [open, setOpen] = useState(false);
+    const [openCalc, setOpenCalc] = useState(false);
     const [updateLoading, setUpdateLoading] = useState(false);
     const [deleteLoading, setDeleteLoading] = useState(false);
     const [error, setError] = useState("");
@@ -41,14 +42,14 @@ export function Table() {
     };
 
     const handleOpenCalculator = (bool: boolean, rowData: any) => {
-        setOpen(true);
+        setOpenCalc(true);
         setSelectedRow({
             ...rowData
         })
     }
 
     const handleCloseCalculator = () => {
-        setOpen(false);
+        setOpenCalc(false);
         setSelectedRow({
             shopName: "",
             materialPrice: "",
@@ -56,7 +57,6 @@ export function Table() {
             unit: "",
         })
     }
-
 
     const deleteSingleMaterial = async (id: GridRowId) => {
         await apiCall(`/delete/${id}`, "DELETE");
@@ -77,7 +77,11 @@ export function Table() {
     }
 
     const updateSinglePrice = async (id: GridRowId) => {
-        return await apiCall(`/update/${id}`, "PATCH");
+        const res = await apiCall(`/update/${id}`, "PATCH");
+        if (res.status === 400) {
+            throw new Error(`URL not valid or shop service unavailable`);
+        }
+        return res
     }
 
     const updateSelectedPrices = async (e: SyntheticEvent) => {
@@ -87,22 +91,12 @@ export function Table() {
             selectedIds.map(async (id) => {
                 try {
                     const res = await updateSinglePrice(id);
-                    if(res.status === 404) {
-                        const productName = products.map(product => {
-                            if(product.id === id) {
-                                return product.name
-                            }});
-                        setError(`Cannot update price of ${productName}`);
-                        setSelectedIds(selectedIds => selectedIds.filter(arrId => arrId !== id));
-                        setUpdateLoading(false);
-                        return
-                    }
                     if (res.ok) {
                         setSelectedIds(selectedIds => selectedIds.filter(arrId => arrId !== id));
-                        setError("");
                     }
-                } catch (err) {
-                    console.error(`Cannot update price of product with id: ${id}`, err);
+                    setError("");
+                } catch (err: any) {
+                    setError(err.message);
                 }
             })
         )
@@ -164,44 +158,46 @@ export function Table() {
 
     return (
         <>
-            <Calculator open={open} onClose={handleCloseCalculator} selectedRow={selectedRow}/>
-            <div style={{backgroundColor: "#d3d9de"}}>
-                <div style={{display: "flex", justifyContent: "center", padding: "10px 0"}}>
-                    <LoadingButton sx={{marginRight: "10px"}}
-                                   variant="outlined"
-                                   color="error"
-                                   startIcon={<DeleteIcon/>}
-                                   onClick={e => deleteSelected(e)}
-                                   size="medium"
-                                   loading={deleteLoading}
-                                   loadingPosition="start">Delete selected
-                    </LoadingButton>
-                    <LoadingButton sx={{marginRight: "10px"}}
-                                   variant="outlined"
-                                   color="primary"
-                                   onClick={e => updateSelectedPrices(e)}
-                                   size="medium"
-                                   loading={updateLoading}
-                                   loadingPosition="start"
-                                   startIcon={<UpdateIcon/>}>{updateLoading ? "Updating..." : "Update selected"}
-                    </LoadingButton>
-                    {error && <p>{`${error}`}</p>}
-                </div>
-                <div style={{width: "100%"}}>
-                    <div style={{display: "flex", height: "800px", width: "100%"}}>
-                        <Box sx={{width: "100%", flexGrow: 1}}>
-                            <DataGrid
-                                autoHeight
-                                rows={rows}
-                                columns={columns}
-                                pageSize={20}
-                                rowsPerPageOptions={[20]}
-                                checkboxSelection
-                                disableSelectionOnClick
-                                onSelectionModelChange={(id) => setSelectedIds(id)}
-                                selectionModel={selectedIds}
-                            />
-                        </Box>
+            <div>
+                <Calculator open={openCalc} onClose={handleCloseCalculator} selectedRow={selectedRow}/>
+                <div style={{backgroundColor: "#d3d9de"}}>
+                    <div style={{display: "flex", justifyContent: "center", padding: "10px 0"}}>
+                        <LoadingButton sx={{marginRight: "10px"}}
+                                       variant="outlined"
+                                       color="secondary"
+                                       startIcon={<DeleteIcon/>}
+                                       onClick={e => deleteSelected(e)}
+                                       size="medium"
+                                       loading={deleteLoading}
+                                       loadingPosition="start">Delete selected
+                        </LoadingButton>
+                        <LoadingButton sx={{marginRight: "10px"}}
+                                       variant="outlined"
+                                       color={error ? "error" : "primary"}
+                                       onClick={e => updateSelectedPrices(e)}
+                                       size="medium"
+                                       loading={updateLoading}
+                                       loadingPosition="start"
+                                       startIcon={error ? <ErrorIcon/> : <UpdateIcon/>}>{updateLoading ? "Updating..." : "Update selected"}
+                        </LoadingButton>
+                    </div>
+                    {error && <FormHelperText sx={{textAlign: "center"}}>{error}</FormHelperText>}
+                    <div style={{width: "100%"}}>
+                        <div style={{display: "flex", height: "800px", width: "100%"}}>
+                            <Box sx={{width: "100%", flexGrow: 1}}>
+                                <DataGrid
+                                    autoHeight
+                                    rows={rows}
+                                    columns={columns}
+                                    pageSize={20}
+                                    rowsPerPageOptions={[20]}
+                                    checkboxSelection
+                                    disableSelectionOnClick
+                                    onSelectionModelChange={(id) => setSelectedIds(id)}
+                                    selectionModel={selectedIds}
+                                />
+                            </Box>
+                        </div>
                     </div>
                 </div>
             </div>

@@ -2,7 +2,6 @@ import React, {SyntheticEvent, useEffect, useState} from "react";
 import {config} from "../../config/config";
 import {apiCall} from "../../utils/apiCall";
 import {
-
     Dialog,
     DialogActions,
     DialogContent,
@@ -10,7 +9,6 @@ import {
     DialogTitle,
     FormControlLabel,
     FormGroup,
-    FormHelperText,
     MenuItem,
     Switch,
     TextField
@@ -47,6 +45,7 @@ interface ShopDistanceMatrix {
     distance: string;
 }
 
+
 export const Calculator = (props: Props) => {
     const {shopName, materialPrice, name, unit} = props.selectedRow;
     const {open, onClose} = props;
@@ -66,6 +65,7 @@ export const Calculator = (props: Props) => {
     const [shopDistances, setShopDistances] = useState<ShopDistanceMatrix[] | null>(null);
     const [toggleDisable, setToggleDisable] = useState(true);
     const [error, setError] = useState("");
+
 
     const handleClose = () => {
         setForm({
@@ -87,11 +87,32 @@ export const Calculator = (props: Props) => {
         onClose();
     }
 
+
+    const handleCalcFormChange = (key: string, value: any) => {
+        setForm(form => ({
+            ...form,
+            [key]: value,
+        }))
+    }
+
+    const handleStartAddressFormChange = (value: string) => {
+        if (value === "") {
+            setShopDistances(null);
+            setCosts({
+                material: 0,
+                fuel: 0,
+                total: 0,
+            });
+            setError("");
+        }
+        setStartAddress(value);
+    }
+
     const getShopsDistances = async (e: SyntheticEvent) => {
         e.preventDefault();
         try {
             const startCoordinates = await getStartPointCoordinates();
-            const res = await apiCall(`/shops/distances/${shopName}/${startCoordinates}`)
+            const res = await apiCall(`/shops/distances/${shopName}/${startCoordinates}`);
             const data = await res.json();
             setShopDistances(data);
             setToggleDisable(false);
@@ -127,26 +148,6 @@ export const Calculator = (props: Props) => {
         })
     }
 
-    const handleCalcFormChange = (key: string, value: any) => {
-        setForm(form => ({
-            ...form,
-            [key]: value,
-        }))
-    }
-
-    const handleStartAddressFormChange = (value: string) => {
-        if (value === "") {
-            setShopDistances(null);
-            setCosts({
-                material: 0,
-                fuel: 0,
-                total: 0,
-            });
-            setError("");
-        }
-        setStartAddress(value);
-    }
-
     useEffect(() => {
         if (shopDistances && shopDistances.length > 0) {
             const sorted = shopDistances.sort((a, b) => (a.distance > b.distance) ? 1 : ((b.distance > a.distance) ? -1 : 0))
@@ -165,41 +166,45 @@ export const Calculator = (props: Props) => {
                     <DialogContentText><strong>{`${name}`}</strong></DialogContentText>
                     <form onSubmit={getShopsDistances}>
                         <FormGroup sx={{display: "flex", justifyContent: "space-evenly"}} row>
-                        <TextField sx={{marginLeft: "10px", marginTop: "20px", width: "250px"}}
-                                   label="Provide starting point"
-                                   type="text"
-                                   name="startAddress"
-                                   value={startAddress}
-                                   onChange={e => handleStartAddressFormChange(e.target.value)}/>
-                        <FormControlLabel
-                            sx={{marginTop: "20px"}}
-                            label="One way?"
-                            control={<Switch name="oneWay"
-                                             checked={form.oneWay}
-                                             onChange={e => handleCalcFormChange("oneWay", e.target.checked)}
-                            />}
-                        />
+                            <TextField sx={{marginLeft: "10px", marginTop: "20px", width: "300px"}}
+                                       label="Provide starting point and hit Enter"
+                                       type="text"
+                                       name="startAddress"
+                                       value={startAddress}
+                                       onChange={e => handleStartAddressFormChange(e.target.value)}
+                                       helperText={error && error}/>
+                            <FormControlLabel
+                                sx={{marginTop: "20px"}}
+                                label="One way?"
+                                control={<Switch name="oneWay"
+                                                 checked={form.oneWay}
+                                                 onChange={e => handleCalcFormChange("oneWay", e.target.checked)}
+                                />}
+                            />
                         </FormGroup>
-                        {error && <FormHelperText>{error}</FormHelperText>}
+                        {}
                     </form>
                     <form onSubmit={calculate}>
                         <FormGroup sx={{width: "100%"}}>
-                            <TextField name="distance"
-                                       disabled={toggleDisable}
-                                       select
-                                       onChange={(e) => handleCalcFormChange("distance", e.target.value)}
-                                       value={form.distance}
-                                       label="Select shop"
-                                       sx={{marginTop: "20px"}}
+                            {shopDistances && <TextField
+                              name="distance"
+                              disabled={toggleDisable}
+                              select
+                              onChange={(e) => handleCalcFormChange("distance", e.target.value)}
+                              value={form.distance}
+                              label="Select shop"
+                              sx={{marginTop: "20px"}}
+                              helperText="Click to select"
                             >
-                                {shopDistances === null ? null : [...shopDistances]
+                                {[...shopDistances]
                                     .sort((a, b) => (a.distance > b.distance) ? 1 : ((b.distance > a.distance) ? -1 : 0))
                                     .map((shop: ShopDistanceMatrix) => {
                                         return <MenuItem key={shop.address}
                                                          value={shop.distance}>{shop.address} {shop.distance}km</MenuItem>
                                     })}
-                            </TextField>
+                            </TextField>}
                             <TextField sx={{marginTop: "20px"}}
+                                       variant="outlined"
                                        disabled={toggleDisable}
                                        label="Fuel price - liter"
                                        type="number"
@@ -207,6 +212,7 @@ export const Calculator = (props: Props) => {
                                        value={form.gasPrice === 0 ? "" : form.gasPrice}
                                        onChange={e => handleCalcFormChange("gasPrice", e.target.value)}/>
                             <TextField sx={{marginTop: "20px"}}
+                                       variant="outlined"
                                        disabled={toggleDisable}
                                        label="Fuel consumption l/100km"
                                        type="number"
@@ -215,6 +221,7 @@ export const Calculator = (props: Props) => {
                                        onChange={e => handleCalcFormChange("fuelConsumption", e.target.value)}/>
 
                             <TextField sx={{marginTop: "20px"}}
+                                       variant="outlined"
                                        disabled={toggleDisable}
                                        label="Material quantity"
                                        type="number"
