@@ -4,6 +4,9 @@ This is my private project that I want to use during construction of my house.
 
 Main purpose of app is to help gather, update information about various construction materials. 
 
+To run the app you have to provide valid Open Route Service (https://openrouteservice.org/) API key into config.ts file. 
+It's free of charge and you can login using GitHub credentials.
+
 TODO functionalities:
 
 - shopping list
