@@ -9,8 +9,7 @@ It's free of charge and you can login using GitHub credentials.
 
 TODO functionalities:
 
-- shopping list
-- get directions to shops with fuel prices
+- get directions to shops with fuel prices (Shopping List)
 
-TODO later:
+TODO later and not so easy:
 - gather information about availability of products in stores.
