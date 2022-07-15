@@ -1,7 +1,7 @@
 import React from 'react';
 import {ReduceShoppingListRes} from "../../../utils/reduceShoppingListRes";
 import {firstLetterUpperCase} from "../../../utils/firstLetterUpperCase";
-import {Button, Card, CardActions, CardContent, List, ListItem, ListItemText} from "@mui/material";
+import {Button, Card, CardActions, CardContent, List, ListItemText} from "@mui/material";
 import {apiCall} from "../../../utils/apiCall";
 
 interface Props {

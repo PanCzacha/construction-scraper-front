@@ -13,7 +13,6 @@ import ErrorIcon from '@mui/icons-material/Error';
 import {LoadingButton} from "@mui/lab";
 import {FormHelperText} from "@mui/material";
 import {ShoppingList} from "../ShoppingList/ShoppingList";
-import {reduceShoppingListRes, ReduceShoppingListRes} from "../../utils/reduceShoppingListRes";
 
 interface CalculatorProps {
     shopName: string;
