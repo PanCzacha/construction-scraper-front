@@ -9,8 +9,8 @@ function App() {
 
     return (
         <IdContext.Provider value={{contextId, setContextId}}>
-            <Header/>
-            <Table/>
+                <Header/>
+                <Table/>
         </IdContext.Provider>
     );
 }

@@ -12,6 +12,8 @@ import UpdateIcon from '@mui/icons-material/Update';
 import ErrorIcon from '@mui/icons-material/Error';
 import {LoadingButton} from "@mui/lab";
 import {FormHelperText} from "@mui/material";
+import {ShoppingList} from "../ShoppingList/ShoppingList";
+import {reduceShoppingListRes, ReduceShoppingListRes} from "../../utils/reduceShoppingListRes";
 
 interface CalculatorProps {
     shopName: string;
@@ -31,6 +33,8 @@ export function Table() {
         unit: "",
     });
     const [openCalc, setOpenCalc] = useState(false);
+    const [openList, setOpenList] = useState(false);
+    const [startPoint, setStartPoint] = useState<string>("");
     const [updateLoading, setUpdateLoading] = useState(false);
     const [deleteLoading, setDeleteLoading] = useState(false);
     const [error, setError] = useState("");
@@ -57,6 +61,15 @@ export function Table() {
             unit: "",
         })
     }
+
+    const handleOpenList = async () => {
+        setOpenList(true);
+    }
+
+    const handleCloseList = () => {
+        setOpenList(false);
+    }
+
 
     const deleteSingleMaterial = async (id: GridRowId) => {
         await apiCall(`/delete/${id}`, "DELETE");
@@ -158,9 +171,11 @@ export function Table() {
 
     return (
         <>
-            <div>
-                <Calculator open={openCalc} onClose={handleCloseCalculator} selectedRow={selectedRow}/>
-                <div style={{backgroundColor: "#d3d9de"}}>
+            {openList ?
+                <ShoppingList open={openList} close={handleCloseList} startPoint={startPoint}/>
+                :
+                <div style={{height: "calc(100vh - 200px)", backgroundColor: "#d3d9de"}}>
+                    <Calculator open={openCalc} onClose={handleCloseCalculator} setStartPoint={setStartPoint} selectedRow={selectedRow}/>
                     <div style={{display: "flex", justifyContent: "center", padding: "10px 0"}}>
                         <LoadingButton sx={{marginRight: "10px"}}
                                        variant="outlined"
@@ -180,27 +195,27 @@ export function Table() {
                                        loadingPosition="start"
                                        startIcon={error ? <ErrorIcon/> : <UpdateIcon/>}>{updateLoading ? "Updating..." : "Update selected"}
                         </LoadingButton>
+                        <Button variant="contained" onClick={() => handleOpenList()}>Shopping List</Button>
                     </div>
                     {error && <FormHelperText sx={{textAlign: "center"}}>{error}</FormHelperText>}
-                    <div style={{width: "100%"}}>
-                        <div style={{display: "flex", height: "800px", width: "100%"}}>
-                            <Box sx={{width: "100%", flexGrow: 1}}>
-                                <DataGrid
-                                    autoHeight
-                                    rows={rows}
-                                    columns={columns}
-                                    pageSize={20}
-                                    rowsPerPageOptions={[20]}
-                                    checkboxSelection
-                                    disableSelectionOnClick
-                                    onSelectionModelChange={(id) => setSelectedIds(id)}
-                                    selectionModel={selectedIds}
-                                />
-                            </Box>
-                        </div>
+                    <div style={{display: "flex",}}>
+                        <Box sx={{width: "100%", flexGrow: 1}}>
+                            <DataGrid
+                                autoHeight
+                                autoPageSize
+                                rows={rows}
+                                columns={columns}
+                                pageSize={20}
+                                rowsPerPageOptions={[20]}
+                                checkboxSelection
+                                disableSelectionOnClick
+                                onSelectionModelChange={(id) => setSelectedIds(id)}
+                                selectionModel={selectedIds}
+                            />
+                        </Box>
                     </div>
                 </div>
-            </div>
+            }
         </>
     )
 }

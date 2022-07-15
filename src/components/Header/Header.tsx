@@ -4,7 +4,7 @@ import "./Header.css";
 
 export const Header = () => {
     return (
-        <header>
+        <header style={{padding: 0}}>
             <AddForm/>
         </header>
     )

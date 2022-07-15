@@ -1,7 +1,8 @@
-import React, {SyntheticEvent, useEffect, useState} from "react";
+import React, {SyntheticEvent, useContext, useEffect, useState} from "react";
 import {config} from "../../config/config";
 import {apiCall} from "../../utils/apiCall";
 import {
+    Checkbox,
     Dialog,
     DialogActions,
     DialogContent,
@@ -24,6 +25,7 @@ interface Props {
         name: string;
         unit: string;
     }
+    setStartPoint: React.Dispatch<React.SetStateAction<string>>
 }
 
 interface Costs {
@@ -47,8 +49,9 @@ interface ShopDistanceMatrix {
 
 
 export const Calculator = (props: Props) => {
+
     const {shopName, materialPrice, name, unit} = props.selectedRow;
-    const {open, onClose} = props;
+    const {open, onClose, setStartPoint} = props;
     const [costs, setCosts] = useState<Costs>({
         material: 0,
         fuel: 0,
@@ -61,9 +64,12 @@ export const Calculator = (props: Props) => {
         materialQuantity: 0,
         oneWay: false,
     });
+    const [startCalcPoint, setStartCalcPoint] = useState("");
     const [startAddress, setStartAddress] = useState("");
     const [shopDistances, setShopDistances] = useState<ShopDistanceMatrix[] | null>(null);
+    const [shopAddress, setShopAddress] = useState("");
     const [toggleDisable, setToggleDisable] = useState(true);
+    const [toggleInsertDisable, setToggleInsertDisable] = useState(true);
     const [error, setError] = useState("");
 
 
@@ -83,8 +89,23 @@ export const Calculator = (props: Props) => {
         setShopDistances(null);
         setStartAddress("");
         setToggleDisable(true);
+        setToggleInsertDisable(true);
+        setStartCalcPoint("");
         setError("");
         onClose();
+    }
+
+    const handleInsertShopListItem = async () => {
+        setStartPoint(startCalcPoint);
+        const listItem = {
+            shopAddress: shopAddress,
+            shopName: shopName,
+            productName: name,
+            materialQuantity: form.materialQuantity,
+            materialCost: costs.material,
+            unit: unit,
+        }
+        await apiCall("/list", "POST", listItem);
     }
 
 
@@ -112,6 +133,7 @@ export const Calculator = (props: Props) => {
         e.preventDefault();
         try {
             const startCoordinates = await getStartPointCoordinates();
+            setStartCalcPoint(startCoordinates);
             const res = await apiCall(`/shops/distances/${shopName}/${startCoordinates}`);
             const data = await res.json();
             setShopDistances(data);
@@ -146,12 +168,14 @@ export const Calculator = (props: Props) => {
             fuel: Number(fuelConsumptionCost.toFixed(2)),
             total: Number(totalCost.toFixed(2)),
         })
+        setToggleInsertDisable(false);
     }
 
     useEffect(() => {
         if (shopDistances && shopDistances.length > 0) {
             const sorted = shopDistances.sort((a, b) => (a.distance > b.distance) ? 1 : ((b.distance > a.distance) ? -1 : 0))
             handleCalcFormChange("distance", String(sorted[0].distance));
+            setShopAddress(sorted[0].address);
         }
     }, [shopDistances])
 
@@ -181,8 +205,15 @@ export const Calculator = (props: Props) => {
                                                  onChange={e => handleCalcFormChange("oneWay", e.target.checked)}
                                 />}
                             />
+                            {/*<FormControlLabel*/}
+                            {/*    sx={{marginTop: "20px"}}*/}
+                            {/*    label="Use Last point"*/}
+                            {/*    control={<Checkbox name="useLast"*/}
+                            {/*                     checked={form.useLast}*/}
+                            {/*                     onChange={e => handleCalcFormChange("useLast", e.target.checked)}*/}
+                            {/*    />}*/}
+                            {/*/>*/}
                         </FormGroup>
-                        {}
                     </form>
                     <form onSubmit={calculate}>
                         <FormGroup sx={{width: "100%"}}>
@@ -190,6 +221,7 @@ export const Calculator = (props: Props) => {
                               name="distance"
                               disabled={toggleDisable}
                               select
+                              required
                               onChange={(e) => handleCalcFormChange("distance", e.target.value)}
                               value={form.distance}
                               label="Select shop"
@@ -200,6 +232,7 @@ export const Calculator = (props: Props) => {
                                     .sort((a, b) => (a.distance > b.distance) ? 1 : ((b.distance > a.distance) ? -1 : 0))
                                     .map((shop: ShopDistanceMatrix) => {
                                         return <MenuItem key={shop.address}
+                                                         onClick={() => setShopAddress(shop.address)}
                                                          value={shop.distance}>{shop.address} {shop.distance}km</MenuItem>
                                     })}
                             </TextField>}
@@ -221,6 +254,7 @@ export const Calculator = (props: Props) => {
                                        onChange={e => handleCalcFormChange("fuelConsumption", e.target.value)}/>
 
                             <TextField sx={{marginTop: "20px"}}
+                                       required
                                        variant="outlined"
                                        disabled={toggleDisable}
                                        label="Material quantity"
@@ -247,6 +281,7 @@ export const Calculator = (props: Props) => {
                 </>
             </DialogContent>
             <DialogActions>
+                <Button onClick={() => handleInsertShopListItem()} disabled={toggleInsertDisable}>Add to shopping list</Button>
                 <Button onClick={() => handleClose()}>Close</Button>
             </DialogActions>
         </Dialog>

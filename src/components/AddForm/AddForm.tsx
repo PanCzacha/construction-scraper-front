@@ -41,43 +41,45 @@ export const AddForm = () => {
     }
 
     return (
-        <form onSubmit={addMaterial}>
-            <h1 style={{textAlign: "center", fontSize: "30px"}}>Construction Buddy - build with ease</h1>
-            <FormGroup row>
-                <TextField
-                    sx={{marginLeft: "10px"}}
-                    type="text"
-                    name="productGroup"
-                    required
-                    label="Product group"
-                    inputProps={{
-                        maxLength: 49,
-                    }}
-                    value={form.productGroup}
-                    onChange={e => updateForm("productGroup", e.target.value)}/>
-                <TextField
-                    sx={{marginLeft: "10px"}} type="text"
-                    name="link"
-                    required
-                    label="Valid URL to shop"
-                    helperText="Must be URL from OBI, Castorama or Leroy Merlin"
-                    inputProps={{
-                        maxLength: 299,
-                    }}
-                    value={form.link}
-                    onChange={e => updateForm("link", e.target.value)}/>
-            <LoadingButton
-                sx={{marginLeft: "10px"}}
-                type="submit"
-                size="medium"
-                loading={loading}
-                loadingPosition="start"
-                variant="contained"
-                startIcon={<SaveIcon />}
-            >
-                Add to list
-            </LoadingButton>
-            </FormGroup>
-        </form>
+        <div style={{height: "200px"}}>
+            <form onSubmit={addMaterial}>
+                <h1 style={{textAlign: "center", fontSize: "30px"}}>Construction Buddy - build with ease</h1>
+                <FormGroup row>
+                    <TextField
+                        sx={{marginLeft: "10px"}}
+                        type="text"
+                        name="productGroup"
+                        required
+                        label="Product group"
+                        inputProps={{
+                            maxLength: 49,
+                        }}
+                        value={form.productGroup}
+                        onChange={e => updateForm("productGroup", e.target.value)}/>
+                    <TextField
+                        sx={{marginLeft: "10px"}} type="text"
+                        name="link"
+                        required
+                        label="Valid URL to shop"
+                        helperText="Must be URL from OBI, Castorama or Leroy Merlin"
+                        inputProps={{
+                            maxLength: 299,
+                        }}
+                        value={form.link}
+                        onChange={e => updateForm("link", e.target.value)}/>
+                    <LoadingButton
+                        sx={{marginLeft: "10px"}}
+                        type="submit"
+                        size="medium"
+                        loading={loading}
+                        loadingPosition="start"
+                        variant="contained"
+                        startIcon={<SaveIcon/>}
+                    >
+                        Add to list
+                    </LoadingButton>
+                </FormGroup>
+            </form>
+        </div>
     )
 }
