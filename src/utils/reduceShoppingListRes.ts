@@ -1,6 +1,6 @@
 import { ListRecordEntity } from "types";
 
-type Items = Omit<ListRecordEntity, "shopAddress" | "shopName">
+export type Items = Omit<ListRecordEntity, "shopAddress" | "shopName">
 
 export interface ReduceShoppingListRes {
     shopName: string;

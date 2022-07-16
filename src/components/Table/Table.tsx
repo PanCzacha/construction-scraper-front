@@ -16,7 +16,7 @@ import {ShoppingList} from "../ShoppingList/ShoppingList";
 
 interface CalculatorProps {
     shopName: string;
-    materialPrice: string;
+    materialPrice: number;
     name: string;
     unit: string;
 }
@@ -27,13 +27,13 @@ export function Table() {
     const [selectedIds, setSelectedIds] = useState<GridSelectionModel>([]);
     const [selectedRow, setSelectedRow] = useState<CalculatorProps>({
         shopName: "",
-        materialPrice: "",
+        materialPrice: 0,
         name: "",
         unit: "",
     });
     const [openCalc, setOpenCalc] = useState(false);
     const [openList, setOpenList] = useState(false);
-    const [startPoint, setStartPoint] = useState<string>("");
+    const [startLastAddress, setStartLastAddress] = useState<string>("");
     const [updateLoading, setUpdateLoading] = useState(false);
     const [deleteLoading, setDeleteLoading] = useState(false);
     const [error, setError] = useState("");
@@ -55,7 +55,7 @@ export function Table() {
         setOpenCalc(false);
         setSelectedRow({
             shopName: "",
-            materialPrice: "",
+            materialPrice: 0,
             name: "",
             unit: "",
         })
@@ -125,8 +125,8 @@ export function Table() {
                 return firstLetterUpperCase(params.row.shopName)
             }
         },
-        {field: "previousPrice", headerName: "Previous price", flex: 0.5,},
-        {field: "currentPrice", headerName: "Current price", flex: 0.5,},
+        {field: "previousPrice", headerName: "Previous price (zł)", flex: 0.5,},
+        {field: "currentPrice", headerName: "Current price (zł)", flex: 0.5,},
         {field: "unit", headerName: "Unit", flex: 0.2,},
         {
             field: "link", headerName: "Shop URL", flex: 0.5, renderCell: (params): ReactNode => {
@@ -156,7 +156,7 @@ export function Table() {
             productGroup: product.productGroup,
             name: product.name,
             shopName: product.shopName,
-            previousPrice: product.previousPrice,
+            previousPrice: product?.previousPrice,
             currentPrice: product.currentPrice,
             unit: product?.unit,
             link: product.link,
@@ -171,10 +171,10 @@ export function Table() {
     return (
         <>
             {openList ?
-                <ShoppingList open={openList} close={handleCloseList} startPoint={startPoint}/>
+                <ShoppingList open={openList} close={handleCloseList} startLastAddress={startLastAddress}/>
                 :
-                <div style={{height: "calc(100vh - 200px)", backgroundColor: "#d3d9de"}}>
-                    <Calculator open={openCalc} onClose={handleCloseCalculator} setStartPoint={setStartPoint} selectedRow={selectedRow}/>
+                <div style={{minHeight: "calc(100vh - 200px)", backgroundColor: "#d3d9de"}}>
+                    <Calculator open={openCalc} onClose={handleCloseCalculator} setStartLastAddress={setStartLastAddress} startLastAddress={startLastAddress} selectedRow={selectedRow}/>
                     <div style={{display: "flex", justifyContent: "center", padding: "10px 0"}}>
                         <LoadingButton sx={{marginRight: "10px"}}
                                        variant="outlined"

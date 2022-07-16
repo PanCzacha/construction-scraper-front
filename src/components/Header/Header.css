@@ -1,10 +1,8 @@
 header {
     display: flex;
     justify-content: space-evenly;
-    background-color: #66b3ff;
-    padding: 12px;
+    background-color: #91A87D;
     color: white;
-
 }
 
 header h1 {

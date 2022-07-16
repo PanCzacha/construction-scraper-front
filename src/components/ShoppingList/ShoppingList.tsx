@@ -1,17 +1,17 @@
 import React, {useEffect, useState} from "react";
 import {reduceShoppingListRes, ReduceShoppingListRes} from "../../utils/reduceShoppingListRes";
-import {ShopListItem} from "../common/ShopListItem/ShopListItem";
-import {Button, Stack} from "@mui/material";
+import {ShopListModule} from "../common/ShopListModule/ShopListModule";
+import {Button, Grid, Stack} from "@mui/material";
 import {apiCall} from "../../utils/apiCall";
 
 interface Props {
     open: boolean;
     close: () => void;
-    startPoint: string;
+    startLastAddress: string;
 }
 
 export const ShoppingList = (props: Props) => {
-    const {open, close, startPoint} = props;
+    const {open, close, startLastAddress} = props;
     const [list, setList] = useState<ReduceShoppingListRes[]>([]);
 
     const fetchList = async () => {
@@ -33,21 +33,20 @@ export const ShoppingList = (props: Props) => {
 
     return (
         <>
-            <div style={{backgroundColor: "#d3d9de", height: "calc(100vh - 200px)"}}>
+            <div style={{backgroundColor: "#d3d9de", minHeight: "calc(100vh - 200px)"}}>
                 <div style={{display: "flex", justifyContent: "center"}}>
                 <Button sx={{margin: "0 auto"}} onClick={() => close()}>Close</Button>
                 <Button sx={{margin: "0 auto"}} onClick={() => handleDeleteAll()}>Delete all</Button>
                 </div>
                 <h1 style={{margin: "0 0 10px", textAlign: "center"}}>Lista zakupów</h1>
-                <Stack justifyContent="center"
-                       alignItems="center"
-                       direction="row">
+                <Grid container spacing={2}  direction="row"
+                      justifyContent="center">
                     {
-                        list.map(listObj => {
-                            return <ShopListItem listObj={listObj} fetchList={fetchList}/>
+                        list.map((listObj, i) => {
+                            return <ShopListModule key={i} listObj={listObj} fetchList={fetchList}/>
                         })
                     }
-                </Stack>
+                </Grid>
             </div>
         </>
 

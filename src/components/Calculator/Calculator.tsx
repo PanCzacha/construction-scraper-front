@@ -1,4 +1,4 @@
-import React, {SyntheticEvent, useContext, useEffect, useState} from "react";
+import React, {MutableRefObject, SyntheticEvent, useEffect, useRef, useState} from "react";
 import {config} from "../../config/config";
 import {apiCall} from "../../utils/apiCall";
 import {
@@ -21,11 +21,12 @@ interface Props {
     onClose: () => void,
     selectedRow: {
         shopName: string;
-        materialPrice: string;
+        materialPrice: number;
         name: string;
         unit: string;
     }
-    setStartPoint: React.Dispatch<React.SetStateAction<string>>
+    setStartLastAddress: React.Dispatch<React.SetStateAction<string>>;
+    startLastAddress: string;
 }
 
 interface Costs {
@@ -40,18 +41,22 @@ interface FormData {
     fuelConsumption: number;
     materialQuantity: number;
     oneWay: boolean;
+    useLast: boolean;
 }
 
 interface ShopDistanceMatrix {
     address: string;
     distance: string;
 }
+interface Focusable {
+    focus: () => void
+}
 
 
 export const Calculator = (props: Props) => {
 
     const {shopName, materialPrice, name, unit} = props.selectedRow;
-    const {open, onClose, setStartPoint} = props;
+    const {open, onClose, setStartLastAddress, startLastAddress} = props;
     const [costs, setCosts] = useState<Costs>({
         material: 0,
         fuel: 0,
@@ -63,15 +68,15 @@ export const Calculator = (props: Props) => {
         fuelConsumption: 0,
         materialQuantity: 0,
         oneWay: false,
+        useLast: false,
     });
-    const [startCalcPoint, setStartCalcPoint] = useState("");
     const [startAddress, setStartAddress] = useState("");
     const [shopDistances, setShopDistances] = useState<ShopDistanceMatrix[] | null>(null);
     const [shopAddress, setShopAddress] = useState("");
     const [toggleDisable, setToggleDisable] = useState(true);
     const [toggleInsertDisable, setToggleInsertDisable] = useState(true);
     const [error, setError] = useState("");
-
+    const useLastAddress = useRef<Focusable>(null)
 
     const handleClose = () => {
         setForm({
@@ -80,6 +85,7 @@ export const Calculator = (props: Props) => {
             fuelConsumption: 0,
             materialQuantity: 0,
             oneWay: false,
+            useLast: false,
         });
         setCosts({
             material: 0,
@@ -90,13 +96,11 @@ export const Calculator = (props: Props) => {
         setStartAddress("");
         setToggleDisable(true);
         setToggleInsertDisable(true);
-        setStartCalcPoint("");
         setError("");
         onClose();
     }
 
     const handleInsertShopListItem = async () => {
-        setStartPoint(startCalcPoint);
         const listItem = {
             shopAddress: shopAddress,
             shopName: shopName,
@@ -127,13 +131,22 @@ export const Calculator = (props: Props) => {
             setError("");
         }
         setStartAddress(value);
+
+    }
+
+    const handleLastAddressUse = () => {
+        if(startLastAddress !== "") {
+            setStartAddress(startLastAddress)
+        }
+        if (useLastAddress.current != null) {
+            useLastAddress.current.focus();
+        }
     }
 
     const getShopsDistances = async (e: SyntheticEvent) => {
         e.preventDefault();
         try {
             const startCoordinates = await getStartPointCoordinates();
-            setStartCalcPoint(startCoordinates);
             const res = await apiCall(`/shops/distances/${shopName}/${startCoordinates}`);
             const data = await res.json();
             setShopDistances(data);
@@ -145,6 +158,7 @@ export const Calculator = (props: Props) => {
     }
 
     const getStartPointCoordinates = async () => {
+        setStartLastAddress(startAddress);
         const res = await fetch(`https://api.openrouteservice.org/geocode/search?api_key=${config.openRouteServiceApiKey}&text=${startAddress}`);
         const data = await res.json();
         if (!data.features[0]) {
@@ -160,7 +174,7 @@ export const Calculator = (props: Props) => {
         const fuelConsumptionCost: number = oneWay
             ? fuelConsumption / (100 / Number(distance)) * gasPrice
             : (fuelConsumption / (100 / Number(distance)) * gasPrice) * 2;
-        const materialCost: number = materialQuantity * Number(materialPrice);
+        const materialCost: number = Number(materialQuantity) * Number(materialPrice);
         const totalCost: number = fuelConsumptionCost + materialCost;
 
         setCosts({
@@ -195,6 +209,7 @@ export const Calculator = (props: Props) => {
                                        type="text"
                                        name="startAddress"
                                        value={startAddress}
+                                       inputRef={useLastAddress}
                                        onChange={e => handleStartAddressFormChange(e.target.value)}
                                        helperText={error && error}/>
                             <FormControlLabel
@@ -205,14 +220,7 @@ export const Calculator = (props: Props) => {
                                                  onChange={e => handleCalcFormChange("oneWay", e.target.checked)}
                                 />}
                             />
-                            {/*<FormControlLabel*/}
-                            {/*    sx={{marginTop: "20px"}}*/}
-                            {/*    label="Use Last point"*/}
-                            {/*    control={<Checkbox name="useLast"*/}
-                            {/*                     checked={form.useLast}*/}
-                            {/*                     onChange={e => handleCalcFormChange("useLast", e.target.checked)}*/}
-                            {/*    />}*/}
-                            {/*/>*/}
+                            <Button sx={{marginTop: "10px"}} disabled={startLastAddress === ""} onClick={() => handleLastAddressUse()}>Use last address</Button>
                         </FormGroup>
                     </form>
                     <form onSubmit={calculate}>
@@ -225,7 +233,7 @@ export const Calculator = (props: Props) => {
                               onChange={(e) => handleCalcFormChange("distance", e.target.value)}
                               value={form.distance}
                               label="Select shop"
-                              sx={{marginTop: "20px"}}
+                              sx={{marginTop: "10px"}}
                               helperText="Click to select"
                             >
                                 {[...shopDistances]
@@ -260,7 +268,7 @@ export const Calculator = (props: Props) => {
                                        label="Material quantity"
                                        type="number"
                                        name="materialQuantity"
-                                       helperText={`Item price is ${materialPrice} / ${unit}`}
+                                       helperText={`Item price is ${materialPrice} zł/ ${unit}`}
                                        value={form.materialQuantity === 0 ? "" : form.materialQuantity}
                                        onChange={e => handleCalcFormChange("materialQuantity", e.target.value)}/>
                         </FormGroup>
