@@ -156,9 +156,9 @@ export function Table() {
             productGroup: product.productGroup,
             name: product.name,
             shopName: product.shopName,
-            previousPrice: product?.previousPrice,
+            previousPrice: product.previousPrice,
             currentPrice: product.currentPrice,
-            unit: product?.unit,
+            unit: product.unit,
             link: product.link,
         }
     });

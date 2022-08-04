@@ -9,7 +9,7 @@ interface Props {
     fetchList: () => void;
 }
 
-export const ShopListModule = (props: Props) => {
+export const ShopListItemsList = (props: Props) => {
     const {fetchList, listObj} = props;
     return (
         <Grid item xs={4}>

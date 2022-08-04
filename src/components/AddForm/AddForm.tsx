@@ -8,6 +8,7 @@ import {LoadingButton} from "@mui/lab";
 export const AddForm = () => {
     const {setContextId} = useContext(IdContext);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState("");
     const [form, setForm] = useState({
         link: "",
         productGroup: "",
@@ -21,19 +22,35 @@ export const AddForm = () => {
                 link: form.link,
                 productGroup: form.productGroup,
             });
+
+            if(!res.ok) {
+                setForm({
+                    link: "",
+                    productGroup: "",
+                })
+                throw res
+            }
+
             const id = res.json();
+            setContextId(id);
+            if(error !== "") {
+                setError("");
+            }
             setForm({
                 link: "",
                 productGroup: "",
             })
-            setContextId(id);
+
+        } catch (err: any) {
+            const data = await err.json();
+            setError(data.message);
         } finally {
             setLoading(false);
         }
 
     }
 
-    const updateForm = (key: string, value: any) => {
+    const handleChangeForm = (key: string, value: any) => {
         setForm(form => ({
             ...form,
             [key]: value,
@@ -43,7 +60,7 @@ export const AddForm = () => {
     return (
         <div style={{height: "200px"}}>
             <form onSubmit={addMaterial}>
-                <h1 style={{textAlign: "center", fontSize: "30px"}}>Construction Buddy - build with ease</h1>
+                <h1 style={{textAlign: "center", fontSize: "30px"}}>Construction Buddy </h1>
                 <FormGroup row>
                     <TextField
                         sx={{marginLeft: "10px"}}
@@ -55,18 +72,20 @@ export const AddForm = () => {
                             maxLength: 49,
                         }}
                         value={form.productGroup}
-                        onChange={e => updateForm("productGroup", e.target.value)}/>
+                        onChange={e => handleChangeForm("productGroup", e.target.value)}/>
                     <TextField
-                        sx={{marginLeft: "10px"}} type="text"
+                        sx={{marginLeft: "10px", width: "600px"}}
+                        type="text"
                         name="link"
                         required
                         label="Valid URL to shop"
-                        helperText="Must be URL from OBI, Castorama or Leroy Merlin"
+                        helperText={error ? `${error}` : "Must be URL from OBI, Castorama or Leroy Merlin"}
                         inputProps={{
+                            minLength: 3,
                             maxLength: 299,
                         }}
                         value={form.link}
-                        onChange={e => updateForm("link", e.target.value)}/>
+                        onChange={e => handleChangeForm("link", e.target.value)}/>
                     <LoadingButton
                         sx={{marginLeft: "10px"}}
                         type="submit"

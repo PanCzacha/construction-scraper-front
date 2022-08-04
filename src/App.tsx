@@ -1,7 +1,7 @@
 import React, {useState} from 'react';
 import {Table} from './components/Table/Table';
 import {IdContext} from "./contexts/IdContext";
-import {Header} from "./components/Header/Header";
+import {Header} from "./components/layouts/Header/Header";
 import './App.css';
 
 function App() {

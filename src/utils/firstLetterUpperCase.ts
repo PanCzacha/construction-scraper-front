@@ -1,8 +1,8 @@
-export const firstLetterUpperCase = (s: string) => {
-    if (s === "leroymerlin") {
+export const firstLetterUpperCase = (string: string) => {
+    if (string === "leroymerlin") {
         return "Leroy Merlin"
     }
-    return s.split(" ")
+    return string.split(" ")
         .map((substring: string) => substring[0].toUpperCase() + substring.slice(1))
         .join(" ")
 }

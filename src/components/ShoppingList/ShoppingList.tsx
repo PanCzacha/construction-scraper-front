@@ -1,7 +1,7 @@
 import React, {useEffect, useState} from "react";
 import {reduceShoppingListRes, ReduceShoppingListRes} from "../../utils/reduceShoppingListRes";
-import {ShopListModule} from "../common/ShopListModule/ShopListModule";
-import {Button, Grid, Stack} from "@mui/material";
+import {ShopListItemsList} from "../common/ShopListItemsList/ShopListItemsList";
+import {Button, Grid} from "@mui/material";
 import {apiCall} from "../../utils/apiCall";
 
 interface Props {
@@ -43,7 +43,7 @@ export const ShoppingList = (props: Props) => {
                       justifyContent="center">
                     {
                         list.map((listObj, i) => {
-                            return <ShopListModule key={i} listObj={listObj} fetchList={fetchList}/>
+                            return <ShopListItemsList key={i} listObj={listObj} fetchList={fetchList}/>
                         })
                     }
                 </Grid>
